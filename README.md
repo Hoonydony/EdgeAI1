@@ -21,19 +21,20 @@ A lightweight edge AI demo that collects real-time vehicle ECU data(a sample EV 
 
    mosquitto
 
-3. Start the Rust data publisher **main.rs** to simulate ECU sensor data and publish it via MQTT (main.rs):
+3. Start the Rust data publisher **main.rs** to simulate real-time ECU sensor data and publish it via MQTT (main.rs):
 
    cargo run
 
 4. Run the anomaly detection service in another terminal, **app.py** subscribes to MQTT topics, applies PCA and IsolationForest models for anomaly detection, and publishes anomaly alerts:
 
-   python app.py
+   python3 app.py
 
 5. Run the visualization client in another terminal again, **visual.py** visualizes real-time sensor data and highlights detected anomalies with ECU ID, timestamp, and the score. The anomaly score points display a score that indicates how far each data point deviates from the learned normal data distribution, with lower scores representing stronger anomalies:
 
-   python visual.py
+   python3 visual.py
 
-<img width="1590" alt="Screenshot 2025-06-20 at 14 33 14" src="https://github.com/user-attachments/assets/8e670da9-8240-4ce6-946b-574f9c0f5665" />
+<img width="1312" alt="image" src="https://github.com/user-attachments/assets/2de72e3a-6455-4cec-aaf6-ace08ebebe50" />
+
 
  
 This AI model for anomaly detection is based on an unsupervised learning approach. 
@@ -51,4 +52,4 @@ During real-time operation, new sensor data is transformed through the same PCA 
 
 
 Regarding the temperature feature learning issue:
-In our data, the relationship between speed and voltage shows a strong, almost linear correlation with relatively low noise, which makes it easier for the model to learn a consistent pattern and distinguish outliers effectively. However, the speed-to-temperature relationship is noisier and more spread out around the expected correlation line. This higher variance causes the model to sometimes misclassify points near the center of the temperature-speed distribution as anomalies, since the model struggles to learn a precise boundary for normal temperature values. This discrepancy explains why anomaly detection performs better on speed-voltage data than on speed-temperature data.
+In our data, the relationship **between speed and voltage** shows a strong, almost linear correlation with relatively low noise, which makes it easier for the model to learn a consistent pattern and distinguish outliers effectively. However, the **speed-to-temperature** relationship is noisier and more spread out around the expected correlation line. This higher variance causes the model to sometimes misclassify points near the center of the temperature-speed distribution as anomalies, since the model struggles to learn a precise boundary for normal temperature values. This discrepancy explains why anomaly detection performs better on speed-voltage data than on speed-temperature data.
