@@ -5,7 +5,7 @@ from sklearn.ensemble import IsolationForest
 import paho.mqtt.client as mqtt
 
 # -------------------------
-# 1) 정상 데이터 로드 + 전처리
+# 1) Load and preprocess normal data
 # -------------------------
 
 with open("normal_data.json") as f:
@@ -17,25 +17,25 @@ X_train = np.array([
     for d in normal_data
 ])
 
-print(f"✅ 정상 데이터 shape: {X_train.shape}")
+print(f"✅ Normal data shape: {X_train.shape}")
 
 # -------------------------
-# 2) PCA 2차원 축소 + IsolationForest 학습
+# 2) PCA dimensionality reduction + IsolationForest training
 # -------------------------
 
 pca = PCA(n_components=2, random_state=42)
 X_train_pca = pca.fit_transform(X_train)
 
 iso_forest = IsolationForest(
-    contamination=0.01,  # 예상 이상치 비율
+    contamination=0.01,  # estimated anomaly ratio
     random_state=42
 )
 iso_forest.fit(X_train_pca)
 
-print(f"✅ PCA + IsolationForest 학습 완료")
+print(f"✅ PCA and IsolationForest training complete")
 
 # -------------------------
-# 3) MQTT 설정
+# 3) MQTT configuration
 # -------------------------
 
 BROKER = "localhost"
@@ -54,15 +54,15 @@ def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode())
         print(f"📥 Received: {payload}")
 
-        # 수신 데이터 PCA 변환
+        # Transform received data using PCA
         X_new = np.array([[payload['speed'], payload['temperature'], payload['voltage']]])
         X_new_pca = pca.transform(X_new)
 
-        # IsolationForest 예측 & score
+        # IsolationForest prediction & score
         score = iso_forest.decision_function(X_new_pca)[0]
         is_anomaly = iso_forest.predict(X_new_pca)[0] == -1
 
-        # 이상치이면 anomaly topic 발행
+        # If anomaly, publish to anomaly topic
         if is_anomaly:
             payload['anomaly'] = True
             payload['score'] = score

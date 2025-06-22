@@ -5,14 +5,14 @@ use rand_distr::{Normal, Distribution};
 use chrono::Local;
 
 fn main() {
-    // MQTT 브로커 설정
+    // MQTT broker settings
     let mut mqttoptions = MqttOptions::new("rust-edgeai-publisher", "localhost", 1883);
     mqttoptions.set_keep_alive(Duration::from_secs(5));
 
-    // 클라이언트와 connection 생성
+    // Create client and connection
     let (mut client, mut connection) = Client::new(mqttoptions, 10);
 
-    // connection 이벤트 루프를 별도 스레드에서 실행 (중요!)
+    // Run the connection event loop in a separate thread
     thread::spawn(move || {
         for event in connection.iter() {
             println!("MQTT Event: {:?}", event);
@@ -25,25 +25,25 @@ fn main() {
 
     loop {
         for ecu_id in 1..=2 {
-            // speed: 20.0 ~ 100.0 float
+            // speed: random float between 20.0 and 100.0
             let speed: f32 = rng.gen_range(20.0..100.0);
 
-            // temperature = 30 + 0.05 * speed + 노이즈
+            // temperature = 30 + 0.05 * speed + small noise
             let temperature = 30.0 + 0.05 * speed + normal_temp.sample(&mut rng);
 
-            // voltage = 360 + 0.3 * speed + 노이즈
+            // voltage = 360 + 0.3 * speed + larger noise
             let voltage = 360.0 + 0.3 * speed + normal_volt.sample(&mut rng);
 
-            // 타임스탬프
+            // generate timestamp
             let timestamp = Local::now().format("%Y-%m-%dT%H:%M:%S%z").to_string();
 
-            // JSON 문자열
+            // build JSON payload
             let payload = format!(
                 r#"{{"timestamp":"{}","ecu_id":{},"temperature":{:.2},"speed":{:.2},"voltage":{:.2}}}"#,
                 timestamp, ecu_id, temperature, speed, voltage
             );
 
-            // MQTT publish
+            // publish to MQTT topic
             client
                 .publish(format!("car/ecu/{}", ecu_id), QoS::AtLeastOnce, false, payload)
                 .unwrap();

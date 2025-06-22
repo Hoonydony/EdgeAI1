@@ -4,12 +4,12 @@ import matplotlib.animation as animation
 from collections import deque
 import json
 
-# MQTT 브로커
+# MQTT broker settings
 BROKER = "localhost"
 RAW_TOPIC = "car/ecu/#"
 ANOMALY_TOPIC = "vehicle/anomaly"
 
-MAX_LEN = 200  # 최근 200개까지 표시
+MAX_LEN = 200  # Keep up to the last 200 data points
 
 speeds = deque(maxlen=MAX_LEN)
 temperatures = deque(maxlen=MAX_LEN)
@@ -17,7 +17,7 @@ voltages = deque(maxlen=MAX_LEN)
 anomalies = deque(maxlen=MAX_LEN)
 ecu_ids = deque(maxlen=MAX_LEN)
 timestamps = deque(maxlen=MAX_LEN)
-scores = deque(maxlen=MAX_LEN)  # ✅ Score 추가
+scores = deque(maxlen=MAX_LEN)  # ✅ Store anomaly score
 
 client = mqtt.Client()
 
@@ -35,10 +35,10 @@ def on_message(client, userdata, msg):
             speeds.append(payload.get('speed', 0))
             temperatures.append(payload.get('temperature', 0))
             voltages.append(payload.get('voltage', 0))
-            anomalies.append(False)  # RAW는 기본 정상
+            anomalies.append(False)  # Mark as normal for raw data
             ecu_ids.append(payload.get('ecu_id', 'unknown'))
             timestamps.append(payload.get('timestamp', 'unknown'))
-            scores.append(0.0)  # RAW는 score 0
+            scores.append(0.0)  # Raw data has score 0
 
         elif msg.topic == ANOMALY_TOPIC:
             if len(anomalies) > 0:
@@ -55,7 +55,7 @@ client.on_message = on_message
 client.connect(BROKER, 1883)
 client.loop_start()
 
-# Matplotlib 설정: 1 Row, 2 Column
+# Matplotlib setup: 1 row, 2 columns
 fig, axs = plt.subplots(1, 2, figsize=(12, 6))
 
 def animate(i):
@@ -65,7 +65,7 @@ def animate(i):
     axs[0].clear()
     axs[1].clear()
 
-    # Speed vs Temperature scatter
+    # Speed vs Temperature scatter plot
     normal_speeds = [s for s, a in zip(speeds, anomalies) if not a]
     normal_temps = [t for t, a in zip(temperatures, anomalies) if not a]
     anomaly_speeds = [s for s, a in zip(speeds, anomalies) if a]
@@ -74,7 +74,7 @@ def animate(i):
     axs[0].scatter(normal_speeds, normal_temps, c='blue', label='Normal')
     axs[0].scatter(anomaly_speeds, anomaly_temps, c='red', label='Anomaly')
 
-    # 이상치 점 옆에 ECU ID, timestamp, score 표시
+    # Annotate anomaly points with ECU ID, timestamp, and score(under 0)
     for idx, (s, t, a) in enumerate(zip(speeds, temperatures, anomalies)):
         if a:
             label = f"ECU:{ecu_ids[idx]}\n{timestamps[idx]}\nScore:{scores[idx]:.3f}"
@@ -86,14 +86,14 @@ def animate(i):
     axs[0].legend(loc='lower right')
     axs[0].grid(True)
 
-    # Speed vs Voltage scatter
+    # Speed vs Voltage scatter plot
     normal_volts = [v for v, a in zip(voltages, anomalies) if not a]
     anomaly_volts = [v for v, a in zip(voltages, anomalies) if a]
 
     axs[1].scatter(normal_speeds, normal_volts, c='blue', label='Normal')
     axs[1].scatter(anomaly_speeds, anomaly_volts, c='red', label='Anomaly')
 
-    # 이상치 점 옆에 ECU ID, timestamp, score 표시
+    # Annotate anomaly points with ECU ID, timestamp, and score
     for idx, (s, v, a) in enumerate(zip(speeds, voltages, anomalies)):
         if a:
             label = f"ECU:{ecu_ids[idx]}\n{timestamps[idx]}\nScore:{scores[idx]:.3f}"
